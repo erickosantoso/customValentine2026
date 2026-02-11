@@ -20,11 +20,15 @@ body {
   box-sizing: border-box;
   overflow: hidden;
   color: white;
+  transition: background 1s ease;
 }
+
+.hidden { display: none; }
 
 h1 {
   font-size: 1.8em;
   margin-bottom: 20px;
+  animation: fadeIn 1.5s ease forwards;
 }
 
 input {
@@ -46,12 +50,7 @@ button {
   transition: all 0.25s ease;
 }
 
-#startBtn {
-  background-color: #ff4d6d;
-  color: white;
-}
-
-#yesBtn {
+#startBtn, #yesBtn {
   background-color: #ff4d6d;
   color: white;
 }
@@ -61,13 +60,33 @@ button {
   color: #ff4d6d;
   position: fixed;
   left: 50%;
-  top: 60%;
+  top: 70%;
   transform: translate(-50%, -50%);
 }
 
 #counter {
   margin-top: 15px;
-  font-size: 16px;
+}
+
+#hearts {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
+
+.glow {
+  animation: glowEffect 1s infinite alternate;
+}
+
+@keyframes glowEffect {
+  from { text-shadow: 0 0 10px #fff; }
+  to { text-shadow: 0 0 30px #fff; }
 }
 </style>
 </head>
@@ -76,30 +95,63 @@ button {
 
 <div id="startScreen">
   <h1>Before we continue… who is this special lady? 💕</h1>
-  <input type="text" id="nameInput" placeholder="Your beautiful name...">
+  <input type="text" id="nameInput" placeholder="Her lovely name...">
   <br>
   <button id="startBtn">Begin ✨</button>
 </div>
 
+<div id="loadingScreen" class="hidden">
+  <h1 id="loadingText">Checking compatibility...</h1>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <h1 id="question"></h1>
+  <button id="yesBtn">YES 💕</button>
+  <button id="noBtn">NO 🙈</button>
+  <div id="counter"></div>
+</div>
+
+<canvas id="hearts"></canvas>
+
+<audio id="bgMusic" loop>
+  <source src="bensound-romantic.mp3" type="audio/mpeg">
+</audio>
+
 <script>
 const startBtn = document.getElementById("startBtn");
+const startScreen = document.getElementById("startScreen");
+const loadingScreen = document.getElementById("loadingScreen");
+const gameScreen = document.getElementById("gameScreen");
+const music = document.getElementById("bgMusic");
 
 startBtn.addEventListener("click", () => {
   const name = document.getElementById("nameInput").value.trim();
+  if (!name) return alert("Isi dulu dong 😏");
 
-  if (!name) {
-    alert("Diisi dulu atuh neng 😏");
-    return;
-  }
+  music.volume = 0.5;
+  music.play();
 
-  document.body.innerHTML = `
-    <h1>Will you be my Valentine, ${name}? 💖</h1>
-    <button id="yesBtn">YES 💕</button>
-    <button id="noBtn">NO 🙈</button>
-    <div id="counter"></div>
-  `;
+  startScreen.classList.add("hidden");
+  loadingScreen.classList.remove("hidden");
 
-  initGame(name);
+  setTimeout(() => {
+    document.getElementById("loadingText").innerText =
+      "Calculating love percentage... 💘";
+  }, 1500);
+
+  setTimeout(() => {
+    document.getElementById("loadingText").innerText =
+      "99.99% MATCH 💖";
+  }, 3000);
+
+  setTimeout(() => {
+    loadingScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+    document.getElementById("question").innerText =
+      `Will you be my Valentine, ${name}? 💖`;
+    initGame(name);
+    startHearts();
+  }, 4500);
 });
 
 function initGame(name) {
@@ -112,47 +164,80 @@ function initGame(name) {
 
   function moveButton(e) {
     e.preventDefault();
-
-    const buttonWidth = noBtn.offsetWidth;
-    const buttonHeight = noBtn.offsetHeight;
-
-    const maxX = window.innerWidth - buttonWidth;
-    const maxY = window.innerHeight - buttonHeight;
-
-    const x = Math.random() * maxX;
-    const y = Math.random() * maxY;
-
-    noBtn.style.left = x + "px";
-    noBtn.style.top = y + "px";
-    noBtn.style.transform = "none";
+    noBtn.style.left = Math.random() * (window.innerWidth - 100) + "px";
+    noBtn.style.top = Math.random() * (window.innerHeight - 50) + "px";
 
     noCount++;
     yesScale += 0.15;
     yesBtn.style.transform = `scale(${yesScale})`;
 
     if (noCount < 3) {
-      counter.innerHTML = `Kok gamau sih 😏`;
-    } else if (noCount < 6) {
-      counter.innerHTML = `Pencet YES donggg 🙃`;
+      counter.innerHTML = "Masa sih nggak mau 😏";
     } else {
-      counter.innerHTML = `Ayoo ${name} 😭💘`;
+      counter.innerHTML = `Ayooo ${name} 😭💘`;
     }
   }
 
   noBtn.addEventListener("mouseenter", moveButton);
-  noBtn.addEventListener("mousedown", moveButton);
-  noBtn.addEventListener("click", moveButton);
   noBtn.addEventListener("touchstart", moveButton);
 
   yesBtn.addEventListener("click", () => {
-    document.body.innerHTML = `
-      <h1>YAYYY 💖💖💖</h1>
+    music.volume = 0.8;
+    document.body.style.background =
+      "linear-gradient(135deg, #ff4d6d, #ff99ac)";
+    document.getElementById("question").classList.add("glow");
+
+    gameScreen.innerHTML = `
+      <h1 class="glow">YAYYY 💖💖💖</h1>
       <p style="font-size:22px;">
-        You just made my day, ${name} 😍<br>
+        You just made my day, ${name} 😍<br><br>
         Best Valentine ever 💕
       </p>
     `;
   });
+}
+
+function startHearts() {
+  const canvas = document.getElementById("hearts");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let hearts = [];
+
+  for (let i = 0; i < 50; i++) {
+    hearts.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 5 + 2,
+      speed: Math.random() + 0.5
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    hearts.forEach(h => {
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function update() {
+    hearts.forEach(h => {
+      h.y -= h.speed;
+      if (h.y < 0) h.y = canvas.height;
+    });
+  }
+
+  function loop() {
+    draw();
+    update();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
 }
 </script>
 
